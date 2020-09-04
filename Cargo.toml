@@ -11,3 +11,7 @@ edition = "2018"
 [[bin]]
 name = "ray-tracer"
 path = "main.rs"
+
+[lib]
+name = "tracer"
+path = "lib.rs"

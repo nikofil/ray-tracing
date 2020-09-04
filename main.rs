@@ -1,6 +1,9 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+extern crate tracer;
+use tracer::Point;
+
 fn write_to_file() -> std::io::Result<()> {
     let mut f = File::create("out.ppm")?;
     let width = 256;
@@ -26,5 +29,7 @@ fn write_to_file() -> std::io::Result<()> {
 
 fn main() {
     write_to_file().unwrap();
-    println!("Hello")
+    let mut x = Point::new(1.0,2.0,3.0);
+    x += Point::new(1.1, 2.2, 3.3);
+    println!("Hello {:?}", (x/2.0)*3.0);
 }
