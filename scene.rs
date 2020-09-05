@@ -1,7 +1,7 @@
 use crate::{Ray, Point, Vec3, Color};
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, min_t: f64, max_t: f64) -> Option<(Color, HitRecord)>;
+    fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, recursions: usize) -> Option<(Color, HitRecord)>;
 }
 
 pub struct Scene<'a> {
@@ -19,11 +19,14 @@ impl<'a> Scene<'a> {
         self.objs.push(obj);
     }
 
-    pub fn hit(&self, ray: &Ray) -> Option<Color> {
+    pub fn hit(&self, ray: &Ray, depth: usize) -> Option<Color> {
+        if depth == 0 {
+            return Some(Color::new(0.0, 0.0, 0.0))
+        }
         self.objs
             .iter()
             .fold((None, self.max_t), |(cur_hit, cur_max_t), o| {
-                let hit = o.hit(ray, self.min_t, cur_max_t);
+                let hit = o.hit(ray, self, self.min_t, cur_max_t, depth-1);
                 if let Some((color, hr)) = hit {
                     (Some(color), hr.t)
                 } else {
@@ -32,18 +35,22 @@ impl<'a> Scene<'a> {
             })
             .0
     }
+
+    pub fn bg_color(&self, dir: &Vec3) -> Color {
+        let y = 0.5 * (dir.unit().get_y() + 1.0);
+        (1.0 - y) * Color::new(1.0, 1.0, 1.0) + y * Color::new(0.5, 0.7, 1.0)
+    }
+}
+
+pub enum ColorBehavior {
+    NORMAL,
+    DIFFUSE,
 }
 
 pub struct Sphere {
     center: Point,
     radius: f64,
-}
-
-impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, min_t: f64, max_t: f64) -> Option<(Color, HitRecord)> {
-        self.hit_at(ray, min_t, max_t)
-            .map(|hr| (0.5 * (hr.normal + 1.0), hr))
-    }
+    coloring: ColorBehavior,
 }
 
 pub struct HitRecord {
@@ -54,8 +61,8 @@ pub struct HitRecord {
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f64) -> Sphere {
-        Sphere{center, radius}
+    pub fn new(center: Point, radius: f64, coloring: ColorBehavior) -> Sphere {
+        Sphere{center, radius, coloring}
     }
 
     pub fn hit_at(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
@@ -93,5 +100,22 @@ impl Sphere {
             normal,
             t,
         }
+    }
+}
+
+impl Hittable for Sphere {
+    fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, depth: usize) -> Option<(Color, HitRecord)> {
+        self.hit_at(ray, min_t, max_t).map(|hr| {
+            let color = match self.coloring {
+               ColorBehavior::NORMAL => 0.5 * (hr.normal + 1.0),
+               ColorBehavior::DIFFUSE => {
+                   let new_dir = hr.normal + Vec3::random_in_unit();
+                   let ray = Ray::new(hr.p, new_dir);
+                   let color = scene.hit(&ray, depth-1).unwrap_or_else(|| scene.bg_color(&new_dir));
+                   0.5 * color
+               }
+            };
+            (color, hr)
+        })
     }
 }

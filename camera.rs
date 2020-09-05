@@ -14,7 +14,8 @@ pub const HEIGHT: usize = (WIDTH as f64 / ASPECT_RATIO) as usize;
 pub const VIEWPORT_HEIGHT: f64 = 2.0;
 pub const VIEWPORT_WIDTH: f64 = VIEWPORT_HEIGHT * ASPECT_RATIO;
 pub const FOCAL_LENGTH: f64 = 1.0;
-pub const ANTIALISING: usize = 8;
+pub const ANTIALISING: usize = 10;
+pub const MAX_DEPTH: usize = 10;
 
 fn write_to_file(colors: &Vec<Vec<Color>>) -> std::io::Result<()> {
     let mut f = File::create("out.ppm")?;
@@ -53,7 +54,8 @@ pub fn render(scene: &Scene) {
                 let ray = Ray::new(origin, viewport_upper_left + (x+dx) * horizontal - (y+dy) * vertical - origin);
                 colors[i][j] += ray.ray_color(&scene);
             }
-            colors[i][j] /= ANTIALISING as f64 + 1.0
+            colors[i][j] /= ANTIALISING as f64 + 1.0;
+            colors[i][j] = colors[i][j].sqrt()
         }
     }
     eprint!("\n");

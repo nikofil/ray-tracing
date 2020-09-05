@@ -1,5 +1,6 @@
 use crate::vec::{Point, Color, Vec3};
 use crate::scene::Scene;
+use crate::MAX_DEPTH;
 
 pub struct Ray {
     pub origin: Point,
@@ -16,11 +17,10 @@ impl Ray {
     }
 
     pub fn ray_color(&self, scene: &Scene) -> Color {
-        if let Some(color) = scene.hit(self) {
+        if let Some(color) = scene.hit(self, MAX_DEPTH) {
             color
         } else {
-            let y = 0.5 * (self.dir.unit().get_y() + 1.0);
-            (1.0 - y) * Color::new(1.0, 1.0, 1.0) + y * Color::new(0.5, 0.7, 1.0)
+            scene.bg_color(&self.dir)
         }
     }
 }

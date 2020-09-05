@@ -1,4 +1,5 @@
 use std::ops::*;
+use rand::Rng;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vec3(f64, f64, f64);
@@ -120,8 +121,26 @@ impl Vec3 {
         Vec3(x, y, z)
     }
 
+    pub fn random(min: f64, max: f64) -> Vec3 {
+        let mut rng = rand::thread_rng();
+        Vec3::new(rng.gen_range(min, max), rng.gen_range(min, max), rng.gen_range(min, max))
+    }
+
+    pub fn random_in_unit() -> Vec3 {
+        loop {
+            let v = Vec3::random(-1.0, 1.0);
+            if v.len() < 1.0 {
+                return v;
+            }
+        }
+    }
+
     pub fn unit(&self) -> Vec3 {
         *self / self.len()
+    }
+
+    pub fn sqrt(&self) -> Vec3 {
+        return Vec3::new(self.0.sqrt(), self.1.sqrt(), self.2.sqrt())
     }
 
     pub fn get_x(&self) -> f64 {self.0}
