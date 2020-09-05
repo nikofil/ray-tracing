@@ -1,4 +1,5 @@
 use crate::vec::{Point, Color, Vec3};
+use crate::scene::Scene;
 
 pub struct Ray {
     pub origin: Point,
@@ -14,8 +15,12 @@ impl Ray {
         Ray {origin, dir}
     }
 
-    pub fn ray_color(&self) -> Color {
-        let y = 0.5 * (self.dir.unit().get_y() + 1.0);
-        (1.0-y) * Color::new(1.0, 1.0, 1.0) + y * Color::new(0.5, 0.7, 1.0)
+    pub fn ray_color(&self, scene: &Scene) -> Color {
+        if scene.hit(self) {
+            Color::new(1.0, 0.0, 0.0)
+        } else {
+            let y = 0.5 * (self.dir.unit().get_y() + 1.0);
+            (1.0 - y) * Color::new(1.0, 1.0, 1.0) + y * Color::new(0.5, 0.7, 1.0)
+        }
     }
 }

@@ -37,13 +37,17 @@ fn main() {
     let viewport_vec = Vec3::new(0.0, 0.0, -FOCAL_LENGTH);
     let viewport_upper_left = origin - horizontal/2.0 + vertical/2.0 + viewport_vec;
 
+    let mut scene = Scene::new();
+    let sphere = Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5);
+    scene.add(&sphere);
+
     for j in 0..HEIGHT {
         eprint!("\rLine {} of {}", j+1, HEIGHT);
         let y = (j as f64) / (HEIGHT as f64 - 1.0);
         for i in 0..WIDTH {
             let x = (i as f64) / (WIDTH as f64 - 1.0);
             let ray = Ray::new(origin, viewport_upper_left + x * horizontal - y * vertical - origin);
-            colors[i][j] = ray.ray_color();
+            colors[i][j] = ray.ray_color(&scene);
         }
     }
     eprint!("\n");
