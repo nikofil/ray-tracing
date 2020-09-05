@@ -13,6 +13,14 @@ impl Add for Vec3 {
     }
 }
 
+impl Add<f64> for Vec3 {
+    type Output = Self;
+
+    fn add(self, rhs: f64) -> Self::Output {
+        Vec3(self.0 + rhs, self.1 + rhs, self.2 + rhs)
+    }
+}
+
 impl<T> AddAssign<T> for Vec3 where Vec3: Add<T, Output=Self> {
     fn add_assign(&mut self, rhs: T) {
         *self = *self + rhs;

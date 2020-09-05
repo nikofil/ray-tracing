@@ -16,8 +16,8 @@ impl Ray {
     }
 
     pub fn ray_color(&self, scene: &Scene) -> Color {
-        if scene.hit(self) {
-            Color::new(1.0, 0.0, 0.0)
+        if let Some(color) = scene.hit(self) {
+            color
         } else {
             let y = 0.5 * (self.dir.unit().get_y() + 1.0);
             (1.0 - y) * Color::new(1.0, 1.0, 1.0) + y * Color::new(0.5, 0.7, 1.0)

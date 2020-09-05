@@ -37,8 +37,10 @@ fn main() {
     let viewport_vec = Vec3::new(0.0, 0.0, -FOCAL_LENGTH);
     let viewport_upper_left = origin - horizontal/2.0 + vertical/2.0 + viewport_vec;
 
-    let mut scene = Scene::new();
+    let mut scene = Scene::new(0.0, 5.0);
     let sphere = Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5);
+    scene.add(&sphere);
+    let sphere = Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0);
     scene.add(&sphere);
 
     for j in 0..HEIGHT {
