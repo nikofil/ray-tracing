@@ -15,11 +15,15 @@ fn main() {
             0.5,
             ColorBehavior::Reflect(Color::new(0.8, 0.8, 0.9), 0.8)),
         Sphere::new( // right
-            Point::new(0.5, 0.0, -1.0),
+            Point::new(0.5, 0.0, -2.0),
             0.5,
-            ColorBehavior::Reflect(Color::new(0.8, 0.8, 0.9), 0.1)),
+            ColorBehavior::Dielectric(1.5)),
+        Sphere::new( // right 2
+            Point::new(1.5, 0.0, -2.0),
+            0.5,
+            ColorBehavior::Dielectric(1.5)),
         Sphere::new( // left
-            Point::new(-0.5, 0.0, -1.0),
+            Point::new(-0.5, 0.0, -2.0),
             0.5,
             ColorBehavior::LambertDiffuse(Color::new(0.8, -0.1, 0.2))),
         Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, ColorBehavior::Diffuse),

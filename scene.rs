@@ -48,6 +48,7 @@ pub enum ColorBehavior {
     Diffuse,
     LambertDiffuse(Color),
     Reflect(Color, f64),
+    Dielectric(f64),
 }
 
 pub struct Sphere {
@@ -61,6 +62,21 @@ pub struct HitRecord {
     front_face: bool,
     normal: Vec3,
     t: f64,
+    ray_dir: Vec3,
+}
+
+impl HitRecord {
+    pub fn refract_by(&self, refr_ratio: f64) -> Vec3 {
+        let refr_ratio = if self.front_face {
+            1.0 / refr_ratio
+        } else {
+            refr_ratio
+        };
+        let cos_theta = -Vec3::dot(&self.ray_dir.unit(), &self.normal);
+        let r_out_perp = refr_ratio * (self.ray_dir.unit() + cos_theta * self.normal);
+        let r_out_par = -((1.0 - r_out_perp.len_sq()).abs()).sqrt() * self.normal;
+        r_out_perp + r_out_par
+    }
 }
 
 impl Sphere {
@@ -102,6 +118,7 @@ impl Sphere {
             front_face,
             normal,
             t,
+            ray_dir: ray.dir,
         }
     }
 }
@@ -130,6 +147,10 @@ impl Hittable for Sphere {
                     let ray = Ray::new(hr.p, new_dir);
                     let color = scene.hit(&ray, depth-1).unwrap_or_else(|| scene.bg_color(&new_dir));
                     attenuation * color
+                },
+                ColorBehavior::Dielectric(refract_idx) => {
+                    let ray = Ray::new(hr.p, hr.refract_by(refract_idx));
+                    scene.hit(&ray, depth-1).unwrap_or_else(|| scene.bg_color(&ray.dir))
                 },
             };
             (color, hr)
