@@ -26,7 +26,7 @@ impl<'a> Scene<'a> {
         self.objs
             .iter()
             .fold((None, self.max_t), |(cur_hit, cur_max_t), o| {
-                let hit = o.hit(ray, self, self.min_t, cur_max_t, depth-1);
+                let hit = o.hit(ray, self, self.min_t, cur_max_t, depth);
                 if let Some((color, hr)) = hit {
                     (Some(color), hr.t)
                 } else {
@@ -43,8 +43,11 @@ impl<'a> Scene<'a> {
 }
 
 pub enum ColorBehavior {
-    NORMAL,
-    DIFFUSE,
+    Normal,
+    Color(Color),
+    Diffuse,
+    LambertDiffuse(Color),
+    Reflect(Color, f64),
 }
 
 pub struct Sphere {
@@ -107,13 +110,27 @@ impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, depth: usize) -> Option<(Color, HitRecord)> {
         self.hit_at(ray, min_t, max_t).map(|hr| {
             let color = match self.coloring {
-               ColorBehavior::NORMAL => 0.5 * (hr.normal + 1.0),
-               ColorBehavior::DIFFUSE => {
-                   let new_dir = hr.normal + Vec3::random_in_unit();
+                ColorBehavior::Normal => 0.5 * (hr.normal + 1.0),
+                ColorBehavior::Color(color) => color,
+                ColorBehavior::Diffuse => {
+                    let new_dir = hr.normal + Vec3::random_in_unit();
+                    let ray = Ray::new(hr.p, new_dir);
+                    let color = scene.hit(&ray, depth-1).unwrap_or_else(|| scene.bg_color(&new_dir));
+                    0.5 * color
+                },
+               ColorBehavior::LambertDiffuse(attenuation) => {
+                   let new_dir = hr.normal + Vec3::random_unit();
                    let ray = Ray::new(hr.p, new_dir);
                    let color = scene.hit(&ray, depth-1).unwrap_or_else(|| scene.bg_color(&new_dir));
-                   0.5 * color
-               }
+                   attenuation * color
+               },
+                ColorBehavior::Reflect(attenuation, fuzz) => {
+                    let new_dir_offset = Vec3::dot(&hr.normal, &ray.dir) * hr.normal;
+                    let new_dir = ray.dir - 2.0*new_dir_offset + fuzz * Vec3::random_in_unit();
+                    let ray = Ray::new(hr.p, new_dir);
+                    let color = scene.hit(&ray, depth-1).unwrap_or_else(|| scene.bg_color(&new_dir));
+                    attenuation * color
+                },
             };
             (color, hr)
         })
