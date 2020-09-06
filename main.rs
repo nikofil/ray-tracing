@@ -23,9 +23,13 @@ fn main() {
             0.5,
             ColorBehavior::Dielectric(1.5)),
         Sphere::new( // left
-            Point::new(-0.5, 0.0, -2.0),
+                     Point::new(-0.5, 0.0, -2.0),
+                     0.5,
+                     ColorBehavior::LambertDiffuse(Color::new(0.8, -0.1, 0.2))),
+        Sphere::new( // left 2
+            Point::new(-1.5, 0.0, -2.0),
             0.5,
-            ColorBehavior::LambertDiffuse(Color::new(0.8, -0.1, 0.2))),
+            ColorBehavior::Reflect(Color::new(0.7, 0.7, 0.8), 0.0)),
         Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, ColorBehavior::Diffuse),
     ];
     spheres.iter().for_each(|s| scene.add(s));
