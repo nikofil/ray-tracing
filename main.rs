@@ -3,6 +3,9 @@ use tracer::*;
 use std::f64::INFINITY;
 
 fn main() {
+    // hi();
+    // return;
+
     let mut scene = Scene::new(0.001, INFINITY);
     scene.fill_random(22);
 

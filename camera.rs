@@ -1,6 +1,6 @@
 extern crate rand;
 
-use crate::{Color, Scene, Ray, Vec3, Point};
+use crate::{Color, Scene, Ray, Vec3, Point, new_executor_and_spawner};
 use self::rand::Rng;
 use std::f64::consts::PI;
 
@@ -84,10 +84,9 @@ impl Camera {
     }
 
     pub fn render(&self, scene: &Scene) {
-        let mut rng = rand::thread_rng();
-
-        let image_height = (self.image_width as f64 / self.aspect_ratio) as usize;
-        let mut colors = vec![vec![Color::new(0.0, 0.0, 0.0); image_height]; self.image_width];
+        let image_width = self.image_width;
+        let image_height = (image_width as f64 / self.aspect_ratio) as usize;
+        let mut colors = vec![vec![Color::new(0.0, 0.0, 0.0); image_height]; image_width];
 
         let dir = (self.lookat - self.pos).unit();
         let viewport_height = (self.vertical_fov / 2.0).tan() * 2.0;
@@ -102,28 +101,39 @@ impl Camera {
         let viewport_vec = self.focal_len * dir;
         let viewport_upper_left = self.pos - horizontal / 2.0 + vertical / 2.0 + viewport_vec;
 
+        let pos = self.pos;
+        let antialiasing = self.antialiasing;
+        let max_recursion = self.max_recursion;
+        let (executor, spawner) = new_executor_and_spawner();
+
         for j in 0..image_height {
             eprint!("\rLine {} of {}", j + 1, image_height);
             let y = (j as f64) / (image_height as f64 - 1.0);
-            for i in 0..self.image_width {
-                let x = (i as f64) / (self.image_width as f64 - 1.0);
-                let start_pos = self.pos + self.aperture_offset(right_vec, up_vec);
-                let dir = viewport_upper_left + x * horizontal - y * vertical - self.pos;
-                let ray = Ray::new(start_pos, dir);
-                colors[i][j] = ray.ray_color(&scene, self.max_recursion);
-                for _ in 0..self.antialiasing {
-                    let dx = rng.gen_range(0.0, 1.0) / (self.image_width as f64 - 1.0);
-                    let dy = rng.gen_range(0.0, 1.0) / (image_height as f64 - 1.0);
-                    let start_pos = self.pos + self.aperture_offset(right_vec, up_vec);
-                    let dir = viewport_upper_left + (x + dx) * horizontal - (y + dy) * vertical - start_pos;
+            for i in 0..image_width {
+                spawner.spawn(async {
+                    let mut rng = rand::thread_rng();
+
+                    let x = (i as f64) / (image_width as f64 - 1.0);
+                    let start_pos = pos;//  + self.aperture_offset(right_vec, up_vec);
+                    let dir = viewport_upper_left + x * horizontal - y * vertical - pos;
                     let ray = Ray::new(start_pos, dir);
-                    colors[i][j] += ray.ray_color(&scene, self.max_recursion);
-                }
-                colors[i][j] /= self.antialiasing as f64 + 1.0;
-                colors[i][j] = colors[i][j].sqrt()
+                    // colors[i][j] = ray.ray_color(&scene, max_recursion);
+                    for _ in 0..antialiasing {
+                        let dx = rng.gen_range(0.0, 1.0) / (image_width as f64 - 1.0);
+                        let dy = rng.gen_range(0.0, 1.0) / (image_height as f64 - 1.0);
+                        let start_pos = pos;// + aperture_offset(right_vec, up_vec);
+                        let dir = viewport_upper_left + (x + dx) * horizontal - (y + dy) * vertical - start_pos;
+                        let ray = Ray::new(start_pos, dir);
+                        // colors[i][j] += ray.ray_color(&scene, max_recursion);
+                    }
+                    // colors[i][j] /= antialiasing as f64 + 1.0;
+                    colors[i][j] = colors[i][j].sqrt()
+                });
             }
         }
         eprint!("\n");
+
+        executor.run();
 
         self.write_out(&colors, image_height);
     }

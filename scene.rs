@@ -1,7 +1,7 @@
 use crate::{Ray, Point, Vec3, Color};
 use rand::Rng;
 
-pub trait Hittable {
+pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, recursions: u32) -> Option<(Color, HitRecord)>;
 }
 
