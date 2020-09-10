@@ -35,5 +35,7 @@ fn main() {
     spheres.iter().for_each(|s| scene.add(s));
 
     let origin = Point::new(0.0, 0.0, 0.0);
-    render(origin, &scene);
+    let dir = Vec3::new(0.0, 0.0, -1.0);
+    let cam = Camera::new(origin, dir).vertical_fov(90.0);
+    cam.render(&scene);
 }

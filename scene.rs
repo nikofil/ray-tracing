@@ -2,7 +2,7 @@ use crate::{Ray, Point, Vec3, Color};
 use rand::Rng;
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, recursions: usize) -> Option<(Color, HitRecord)>;
+    fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, recursions: u32) -> Option<(Color, HitRecord)>;
 }
 
 pub struct Scene<'a> {
@@ -20,7 +20,7 @@ impl<'a> Scene<'a> {
         self.objs.push(obj);
     }
 
-    pub fn hit(&self, ray: &Ray, depth: usize) -> Option<Color> {
+    pub fn hit(&self, ray: &Ray, depth: u32) -> Option<Color> {
         if depth == 0 {
             return Some(Color::new(0.0, 0.0, 0.0))
         }
@@ -144,7 +144,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, depth: usize) -> Option<(Color, HitRecord)> {
+    fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, depth: u32) -> Option<(Color, HitRecord)> {
         self.hit_at(ray, min_t, max_t).map(|hr| {
             let color = match self.coloring {
                 ColorBehavior::Normal => 0.5 * (hr.normal + 1.0),
