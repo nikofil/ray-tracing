@@ -5,18 +5,18 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, scene: &Scene, min_t: f64, max_t: f64, recursions: u32) -> Option<(Color, HitRecord)>;
 }
 
-pub struct Scene<'a> {
+pub struct Scene {
     min_t: f64,
     max_t: f64,
-    objs: Vec<&'a dyn Hittable>,
+    objs: Vec<Box<dyn Hittable>>,
 }
 
-impl<'a> Scene<'a> {
-    pub fn new(min_t: f64, max_t: f64) -> Scene<'a> {
+impl Scene {
+    pub fn new(min_t: f64, max_t: f64) -> Scene {
         Scene {min_t, max_t, objs: Vec::new()}
     }
 
-    pub fn add(&mut self, obj: &'a dyn Hittable) {
+    pub fn add(&mut self, obj: Box<dyn Hittable>) {
         self.objs.push(obj);
     }
 
@@ -40,6 +40,57 @@ impl<'a> Scene<'a> {
     pub fn bg_color(&self, dir: &Vec3) -> Color {
         let y = 0.5 * (dir.unit().get_y() + 1.0);
         (1.0 - y) * Color::new(1.0, 1.0, 1.0) + y * Color::new(0.5, 0.7, 1.0)
+    }
+
+    pub fn fill_random(&mut self, side_count: u32) {
+        let earth = Sphere::new(Vec3::new(0.0, -1000.0, 0.0), 1000.0, ColorBehavior::LambertDiffuse(Color::new(0.5, 0.5, 0.5)));
+        self.add(Box::new(earth));
+
+        let mut rng = rand::thread_rng();
+
+        for i in -(side_count as i32 / 2)..(side_count as i32 / 2) {
+            for j in -(side_count as i32 / 2)..(side_count as i32 / 2) {
+                let x = (i as f64) + 0.9 * rng.gen_range(0.0, 0.9);
+                let z = (j as f64) + 0.9 * rng.gen_range(0.0, 0.9);
+                let center = Point::new(x, 0.2, z);
+
+                if (center - Point::new(4.0, 0.2, 0.0)).len() <= 0.9 {
+                    // too close to center spheres
+                    continue
+                }
+
+                let mat = match rng.gen_range(0.0, 1.0) {
+                    n if n < 0.8 => {
+                        let color1 = Color::random(0.0, 1.0);
+                        let color2 = Color::random(0.0, 1.0);
+                        ColorBehavior::LambertDiffuse(color1*color2)
+                    },
+                    n if n < 0.95 => {
+                        let color = Color::random(0.5, 1.0);
+                        let fuzz = rng.gen_range(0.0, 0.5);
+                        ColorBehavior::Reflect(color, fuzz)
+                    },
+                    _ => ColorBehavior::Dielectric(1.5),
+                };
+
+                self.add(Box::new(Sphere::new(center, 0.2, mat)));
+            }
+        }
+
+        // center sphere - refract
+        let color = ColorBehavior::Dielectric(1.5);
+        let sphere = Sphere::new(Point::new(0.0, 1.0, 0.0), 1.0, color);
+        self.add(Box::new(sphere));
+
+        // left sphere - diffuse
+        let color = ColorBehavior::LambertDiffuse(Color::new(0.4, 0.2, 0.1));
+        let sphere = Sphere::new(Point::new(-4.0, 1.0, 0.0), 1.0, color);
+        self.add(Box::new(sphere));
+
+        // right sphere - reflect
+        let color = ColorBehavior::Reflect(Color::new(0.7, 0.6, 0.5), 0.0);
+        let sphere = Sphere::new(Point::new(4.0, 1.0, 0.0), 1.0, color);
+        self.add(Box::new(sphere));
     }
 }
 

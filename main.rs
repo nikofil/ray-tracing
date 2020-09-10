@@ -1,42 +1,21 @@
 extern crate tracer;
 use tracer::*;
-use tracer::ColorBehavior;
 use std::f64::INFINITY;
 
 fn main() {
     let mut scene = Scene::new(0.001, INFINITY);
-    let spheres = [
-        Sphere::new( // small center
-            Point::new(0.0, -0.3, -0.5),
-            0.1,
-            ColorBehavior::Normal),
-        Sphere::new( // up
-            Point::new(0.0, 1.0, -0.8),
-            0.5,
-            ColorBehavior::Reflect(Color::new(0.8, 0.8, 0.9), 0.8)),
-        Sphere::new( // right
-            Point::new(0.5, 0.0, -2.0),
-            0.5,
-            ColorBehavior::Dielectric(1.5)),
-        Sphere::new( // right 2
-            Point::new(1.5, 0.0, -2.0),
-            0.5,
-            ColorBehavior::Dielectric(1.5)),
-        Sphere::new( // left
-                     Point::new(-0.5, 0.0, -2.0),
-                     0.5,
-                     ColorBehavior::LambertDiffuse(Color::new(0.8, -0.1, 0.2))),
-        Sphere::new( // left 2
-            Point::new(-1.5, 0.0, -2.0),
-            0.5,
-            ColorBehavior::Reflect(Color::new(0.7, 0.7, 0.8), 0.0)),
-        Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, ColorBehavior::Diffuse),
-    ];
-    spheres.iter().for_each(|s| scene.add(s));
+    scene.fill_random(22);
 
-    let origin = Point::new(0.0, 30.0, 0.0);
-    let lookat = Vec3::new(0.0, 0.0, -1.0);
-    let up = Vec3::new(0.0, 0.0, -1.0);
-    let cam = Camera::new(origin, lookat, up).focal_length(40.0);
+    let origin = Point::new(13.0, 2.0, 3.0);
+    let lookat = Vec3::new(0.0, 0.0, 0.0);
+    let up = Vec3::new(0.0, 1.0, 0.0);
+    let cam = Camera::new(origin, lookat, up)
+        .aspect_ratio(3.0 / 2.0)
+        .vertical_fov(20.0)
+        .image_width(1200)
+        .antialiasing(500)
+        .focal_length(10.0)
+        .aperture(0.1)
+        .max_recursion(50);
     cam.render(&scene);
 }

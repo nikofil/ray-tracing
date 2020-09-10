@@ -12,25 +12,23 @@ pub struct Camera {
     vertical_fov: f64,
     antialiasing: u32,
     focal_len: f64,
+    aperture: f64,
     image_width: usize,
-    image_height: usize,
     max_recursion: u32,
 }
 
 impl Camera {
     pub fn new(pos: Point, lookat: Point, up: Vec3) -> Camera {
-        let aspect_ratio = 16.0 / 9.0;
-        let image_width = 400;
         Camera {
             pos,
             lookat,
             up: up.unit(),
-            aspect_ratio,
+            aspect_ratio: 16.0 / 9.0,
             vertical_fov: PI / 2.0,
             antialiasing: 10,
             focal_len: 1.0,
-            image_width,
-            image_height: (image_width as f64 / aspect_ratio) as usize,
+            aperture: 0.0,
+            image_width: 400,
             max_recursion: 10,
         }
     }
@@ -55,9 +53,13 @@ impl Camera {
         self
     }
 
+    pub fn aperture(mut self, aperture: f64) -> Self {
+        self.aperture = aperture;
+        self
+    }
+
     pub fn image_width(mut self, width: usize) -> Self {
         self.image_width = width;
-        self.image_height = (width as f64 / self.aspect_ratio) as usize;
         self
     }
 
@@ -66,40 +68,55 @@ impl Camera {
         self
     }
 
-    fn write_out(&self, colors: &Vec<Vec<Color>>) {
-        print!("P3\n{} {}\n255\n", self.image_width, self.image_height);
+    fn write_out(&self, colors: &Vec<Vec<Color>>, height: usize) {
+        print!("P3\n{} {}\n255\n", self.image_width, height);
 
-        for j in 0..self.image_height {
+        for j in 0..height {
             for i in 0..self.image_width {
                 print!("{}\n", colors[i][j].to_s());
             }
         }
     }
 
+    fn aperture_offset(&self, right: Vec3, up: Vec3) -> Vec3 {
+        let offset_weight = (self.aperture / 2.0) * Vec3::random_in_unit();
+        offset_weight.get_x() * right + offset_weight.get_y() * up
+    }
+
     pub fn render(&self, scene: &Scene) {
-        let mut colors = vec![vec![Color::new(0.0, 0.0, 0.0); self.image_height]; self.image_width];
         let mut rng = rand::thread_rng();
 
+        let image_height = (self.image_width as f64 / self.aspect_ratio) as usize;
+        let mut colors = vec![vec![Color::new(0.0, 0.0, 0.0); image_height]; self.image_width];
+
+        let dir = (self.lookat - self.pos).unit();
         let viewport_height = (self.vertical_fov / 2.0).tan() * 2.0;
         let viewport_width = viewport_height * self.aspect_ratio;
-        let dir = (self.lookat - self.pos).unit();
 
-        let horizontal = viewport_width * Vec3::cross(&dir, &self.up).unit();
-        let vertical = viewport_height * Vec3::cross(&horizontal, &dir).unit();
+        let right_vec = Vec3::cross(&dir, &self.up).unit();
+        let up_vec = Vec3::cross(&right_vec, &dir).unit();
+
+        let horizontal = self.focal_len * viewport_width * right_vec;
+        let vertical = self.focal_len * viewport_height * up_vec;
+
         let viewport_vec = self.focal_len * dir;
         let viewport_upper_left = self.pos - horizontal / 2.0 + vertical / 2.0 + viewport_vec;
 
-        for j in 0..self.image_height {
-            eprint!("\rLine {} of {}", j + 1, self.image_height);
-            let y = (j as f64) / (self.image_height as f64 - 1.0);
+        for j in 0..image_height {
+            eprint!("\rLine {} of {}", j + 1, image_height);
+            let y = (j as f64) / (image_height as f64 - 1.0);
             for i in 0..self.image_width {
                 let x = (i as f64) / (self.image_width as f64 - 1.0);
-                let ray = Ray::new(self.pos, viewport_upper_left + x * horizontal - y * vertical - self.pos);
+                let start_pos = self.pos + self.aperture_offset(right_vec, up_vec);
+                let dir = viewport_upper_left + x * horizontal - y * vertical - self.pos;
+                let ray = Ray::new(start_pos, dir);
                 colors[i][j] = ray.ray_color(&scene, self.max_recursion);
                 for _ in 0..self.antialiasing {
                     let dx = rng.gen_range(0.0, 1.0) / (self.image_width as f64 - 1.0);
-                    let dy = rng.gen_range(0.0, 1.0) / (self.image_height as f64 - 1.0);
-                    let ray = Ray::new(self.pos, viewport_upper_left + (x + dx) * horizontal - (y + dy) * vertical - self.pos);
+                    let dy = rng.gen_range(0.0, 1.0) / (image_height as f64 - 1.0);
+                    let start_pos = self.pos + self.aperture_offset(right_vec, up_vec);
+                    let dir = viewport_upper_left + (x + dx) * horizontal - (y + dy) * vertical - start_pos;
+                    let ray = Ray::new(start_pos, dir);
                     colors[i][j] += ray.ray_color(&scene, self.max_recursion);
                 }
                 colors[i][j] /= self.antialiasing as f64 + 1.0;
@@ -108,6 +125,6 @@ impl Camera {
         }
         eprint!("\n");
 
-        self.write_out(&colors);
+        self.write_out(&colors, image_height);
     }
 }
