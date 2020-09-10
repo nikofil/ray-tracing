@@ -6,7 +6,8 @@ use std::f64::consts::PI;
 
 pub struct Camera {
     pos: Point,
-    dir: Vec3,
+    lookat: Vec3,
+    up: Vec3,
     aspect_ratio: f64,
     vertical_fov: f64,
     antialiasing: u32,
@@ -17,12 +18,13 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(pos: Point, dir: Vec3) -> Camera {
+    pub fn new(pos: Point, lookat: Point, up: Vec3) -> Camera {
         let aspect_ratio = 16.0 / 9.0;
         let image_width = 400;
         Camera {
             pos,
-            dir,
+            lookat,
+            up: up.unit(),
             aspect_ratio,
             vertical_fov: PI / 2.0,
             antialiasing: 10,
@@ -78,14 +80,13 @@ impl Camera {
         let mut colors = vec![vec![Color::new(0.0, 0.0, 0.0); self.image_height]; self.image_width];
         let mut rng = rand::thread_rng();
 
-        let viewport_height = (self.vertical_fov / 2.0).tan() * self.focal_len * 2.0;
+        let viewport_height = (self.vertical_fov / 2.0).tan() * 2.0;
         let viewport_width = viewport_height * self.aspect_ratio;
+        let dir = (self.lookat - self.pos).unit();
 
-        eprintln!("{} {}", viewport_width, viewport_height);
-
-        let horizontal = Vec3::new(viewport_width, 0.0, 0.0);
-        let vertical = Vec3::new(0.0, viewport_height, 0.0);
-        let viewport_vec = Vec3::new(0.0, 0.0, -self.focal_len);
+        let horizontal = viewport_width * Vec3::cross(&dir, &self.up).unit();
+        let vertical = viewport_height * Vec3::cross(&horizontal, &dir).unit();
+        let viewport_vec = self.focal_len * dir;
         let viewport_upper_left = self.pos - horizontal / 2.0 + vertical / 2.0 + viewport_vec;
 
         for j in 0..self.image_height {

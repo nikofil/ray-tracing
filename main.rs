@@ -34,8 +34,9 @@ fn main() {
     ];
     spheres.iter().for_each(|s| scene.add(s));
 
-    let origin = Point::new(0.0, 0.0, 0.0);
-    let dir = Vec3::new(0.0, 0.0, -1.0);
-    let cam = Camera::new(origin, dir).vertical_fov(90.0);
+    let origin = Point::new(0.0, 30.0, 0.0);
+    let lookat = Vec3::new(0.0, 0.0, -1.0);
+    let up = Vec3::new(0.0, 0.0, -1.0);
+    let cam = Camera::new(origin, lookat, up).focal_length(40.0);
     cam.render(&scene);
 }
